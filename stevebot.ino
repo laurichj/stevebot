@@ -194,6 +194,9 @@ void setup() {
 
 // the loop routine runs over and over again forever:
 void loop() {
+  // Update misting state machine
+  updateMisterStateMachine();
+
   // Periodic time display for testing/debugging
   static unsigned long lastTimeDisplay = 0;
   if (timeInitialized && (millis() - lastTimeDisplay > 10000)) {
