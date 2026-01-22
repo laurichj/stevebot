@@ -44,6 +44,24 @@ bool isInActiveWindow() {
   return (hour >= 9 && hour < 18);  // 9am to 5:59:59pm
 }
 
+// Log message with fixed-width timestamp
+void logWithTimestamp(const char* message) {
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo)) {
+    // Fixed-width format: YYYY-MM-DD HH:MM:SS | message
+    Serial.printf("%04d-%02d-%02d %02d:%02d:%02d | %s\n",
+                  timeinfo.tm_year + 1900,
+                  timeinfo.tm_mon + 1,
+                  timeinfo.tm_mday,
+                  timeinfo.tm_hour,
+                  timeinfo.tm_min,
+                  timeinfo.tm_sec,
+                  message);
+  } else {
+    Serial.printf("----/--/-- --:--:-- | %s\n", message);
+  }
+}
+
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(115200);
