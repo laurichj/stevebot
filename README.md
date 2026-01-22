@@ -40,9 +40,23 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 - **Relay Control**: GPIO Pin 13
 - **Relay to Mister**: Connect misting system to relay's normally open (NO) terminals
 
-## Testing NTP Time Synchronization
+## Running Tests
 
-After uploading the sketch, open the Serial Monitor at 115200 baud. You should see:
+Comprehensive unit tests for WiFi and NTP functionality are available in the `test/` directory.
+
+See [test/README.md](test/README.md) for detailed instructions on running the test suite.
+
+Quick start:
+```bash
+# Using Arduino IDE: Open test/test_main.ino and upload
+# Using Arduino CLI:
+arduino-cli compile --fqbn esp32:esp32:adafruit_feather_esp32s2 test/
+arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:adafruit_feather_esp32s2 test/
+```
+
+## Testing NTP Time Synchronization (Manual)
+
+After uploading the main sketch, open the Serial Monitor at 115200 baud. You should see:
 
 1. **WiFi Connection Test**: Verify that the board connects to your WiFi network and receives an IP address
 2. **NTP Synchronization Test**: Confirm that time is synchronized with the NTP server

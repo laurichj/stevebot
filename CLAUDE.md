@@ -34,6 +34,19 @@ This is an Arduino sketch (.ino file) that must be compiled and uploaded using t
   ```
   (Adjust port and board FQBN as needed for your specific hardware)
 
+## Running Tests
+
+Unit tests for WiFi and NTP functionality are located in the `test/` directory:
+
+```bash
+# Compile and upload tests
+arduino-cli compile --fqbn esp32:esp32:adafruit_feather_esp32s2 test/
+arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:adafruit_feather_esp32s2 test/
+arduino-cli monitor -p /dev/ttyUSB0 -c baudrate=115200
+```
+
+See `test/README.md` for detailed test documentation.
+
 ## Code Architecture
 
 Single-file Arduino sketch with standard structure:
