@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Commit Guidelines
+
+**IMPORTANT**: Do NOT add "Co-Authored-By: Claude" or any Claude Code attribution text to commit messages unless explicitly instructed by the user.
+
 ## Project Overview
 
 This is an Arduino sketch for ESP32-based hardware testing and diagnostics, specifically designed for Adafruit development boards. The project name is "stevebot".
