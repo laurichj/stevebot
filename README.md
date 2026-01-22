@@ -27,7 +27,10 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 2. Install required libraries:
    - Adafruit_TestBed
    - WiFi (built-in for ESP32)
-3. Configure your WiFi credentials in the sketch
+3. Configure your WiFi credentials:
+   - Copy `secrets.h.template` to `secrets.h`
+   - Edit `secrets.h` and add your WiFi SSID and password
+   - Note: `secrets.h` is gitignored and will not be committed
 4. Upload the sketch to your ESP32 board
 5. Connect the relay to pin 13
 6. Connect your misting system to the relay
@@ -40,7 +43,7 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 ## TODO
 
 ### Core Functionality
-- [ ] Add WiFi credentials configuration (SSID and password)
+- [x] Add WiFi credentials configuration (SSID and password)
 - [ ] Implement NTP client for time synchronization
 - [ ] Add timezone configuration support
 - [ ] Implement scheduling logic (9am-6pm, every 2 hours)
