@@ -95,6 +95,19 @@ void stopMisting() {
   }
 }
 
+// Check if conditions are met to start misting
+bool shouldStartMisting() {
+  if (!isInActiveWindow()) return false;
+  if (currentState != IDLE) return false;
+
+  // First mist (or after boot with no stored state)
+  if (lastMistTime == 0) return true;
+
+  // Check if 2 hours have passed
+  unsigned long elapsed = millis() - lastMistTime;
+  return (elapsed >= MIST_INTERVAL);
+}
+
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(115200);
