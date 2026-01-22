@@ -33,6 +33,17 @@ const char* ntpServer = "pool.ntp.org";
 // Time tracking
 bool timeInitialized = false;
 
+// Check if current time is within active misting window (9am-6pm)
+bool isInActiveWindow() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    return false;  // Can't determine time, not safe to mist
+  }
+
+  int hour = timeinfo.tm_hour;
+  return (hour >= 9 && hour < 18);  // 9am to 5:59:59pm
+}
+
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(115200);
