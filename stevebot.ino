@@ -11,6 +11,22 @@ extern Adafruit_TestBed TB;
 
 #define RELAY_PIN 13
 
+// Misting state machine
+enum MisterState {
+  WAITING_SYNC,   // Time not yet synchronized, can't schedule
+  IDLE,           // Waiting for next misting time
+  MISTING         // Actively running the mister
+};
+
+// Misting configuration
+const unsigned long MIST_DURATION = 25000;      // 25 seconds in milliseconds
+const unsigned long MIST_INTERVAL = 7200000;    // 2 hours in milliseconds
+
+// State variables
+MisterState currentState = WAITING_SYNC;
+unsigned long lastMistTime = 0;        // millis() when last mist started
+unsigned long mistStartTime = 0;       // millis() when current mist started
+
 // NTP server configuration
 const char* ntpServer = "pool.ntp.org";
 
