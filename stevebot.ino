@@ -108,6 +108,32 @@ bool shouldStartMisting() {
   return (elapsed >= MIST_INTERVAL);
 }
 
+// Main state machine update - call from loop()
+void updateMisterStateMachine() {
+  switch (currentState) {
+    case WAITING_SYNC:
+      if (timeInitialized) {
+        currentState = IDLE;
+        lastMistTime = 0;  // Treat as never misted
+        logWithTimestamp("Time synchronized, scheduler active");
+      }
+      break;
+
+    case IDLE:
+      if (shouldStartMisting()) {
+        startMisting();
+      }
+      break;
+
+    case MISTING:
+      unsigned long elapsed = millis() - mistStartTime;
+      if (elapsed >= MIST_DURATION) {
+        stopMisting();
+      }
+      break;
+  }
+}
+
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(115200);
