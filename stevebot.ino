@@ -62,6 +62,39 @@ void logWithTimestamp(const char* message) {
   }
 }
 
+// Start misting cycle
+void startMisting() {
+  digitalWrite(RELAY_PIN, HIGH);
+  mistStartTime = millis();
+  lastMistTime = millis();
+  currentState = MISTING;
+  logWithTimestamp("MIST START");
+}
+
+// Stop misting cycle and log next scheduled time
+void stopMisting() {
+  digitalWrite(RELAY_PIN, LOW);
+  currentState = IDLE;
+  logWithTimestamp("MIST STOP");
+
+  // Log next scheduled time
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo)) {
+    time_t now = mktime(&timeinfo);
+    time_t nextMist = now + (MIST_INTERVAL / 1000);
+    struct tm* nextTimeinfo = localtime(&nextMist);
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "Next mist: %04d-%02d-%02d %02d:%02d:%02d",
+             nextTimeinfo->tm_year + 1900,
+             nextTimeinfo->tm_mon + 1,
+             nextTimeinfo->tm_mday,
+             nextTimeinfo->tm_hour,
+             nextTimeinfo->tm_min,
+             nextTimeinfo->tm_sec);
+    logWithTimestamp(buffer);
+  }
+}
+
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(115200);
