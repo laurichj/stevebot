@@ -5,10 +5,17 @@
 #include "WiFi.h"
 #include <Adafruit_TestBed.h>
 #include "secrets.h"
+#include "time.h"
 
 extern Adafruit_TestBed TB;
 
 #define RELAY_PIN 13
+
+// NTP server configuration
+const char* ntpServer = "pool.ntp.org";
+
+// Time tracking
+bool timeInitialized = false;
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -40,6 +47,29 @@ void setup() {
     Serial.println("\nWiFi connected!");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+
+    // Initialize NTP time synchronization
+    Serial.println("Synchronizing time with NTP server...");
+    configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, ntpServer);
+
+    // Wait for time to be set
+    struct tm timeinfo;
+    int ntpAttempts = 0;
+    while (!getLocalTime(&timeinfo) && ntpAttempts < 10) {
+      Serial.print(".");
+      delay(500);
+      ntpAttempts++;
+    }
+
+    if (getLocalTime(&timeinfo)) {
+      Serial.println("\nTime synchronized!");
+      Serial.print("Current time: ");
+      Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+      timeInitialized = true;
+    } else {
+      Serial.println("\nFailed to synchronize time!");
+      timeInitialized = false;
+    }
   } else {
     Serial.println("\nWiFi connection failed!");
   }
@@ -48,6 +78,17 @@ void setup() {
 // the loop routine runs over and over again forever:
 uint8_t loopCounter = 0;
 void loop() {
+  // Periodic time display for testing/debugging
+  static unsigned long lastTimeDisplay = 0;
+  if (timeInitialized && (millis() - lastTimeDisplay > 10000)) {
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      Serial.print("Current time: ");
+      Serial.println(&timeinfo, "%Y-%m-%d %H:%M:%S");
+    }
+    lastTimeDisplay = millis();
+  }
+
   if (loopCounter == 0) {
     // Test I2C!
     Serial.print("I2C port ");

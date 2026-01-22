@@ -40,12 +40,39 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 - **Relay Control**: GPIO Pin 13
 - **Relay to Mister**: Connect misting system to relay's normally open (NO) terminals
 
+## Testing NTP Time Synchronization
+
+After uploading the sketch, open the Serial Monitor at 115200 baud. You should see:
+
+1. **WiFi Connection Test**: Verify that the board connects to your WiFi network and receives an IP address
+2. **NTP Synchronization Test**: Confirm that time is synchronized with the NTP server
+3. **Time Display Test**: Current time is displayed every 10 seconds to verify accuracy
+
+Expected serial output:
+```
+Connecting to WiFi: YourNetworkName
+....
+WiFi connected!
+IP address: 192.168.1.100
+Synchronizing time with NTP server...
+....
+Time synchronized!
+Current time: Tuesday, January 21 2026 17:30:45
+...
+Current time: 2026-01-21 17:30:55
+```
+
+If time synchronization fails, verify:
+- WiFi connection is stable
+- Your network allows NTP traffic (UDP port 123)
+- Timezone offsets in `secrets.h` are correct
+
 ## TODO
 
 ### Core Functionality
 - [x] Add WiFi credentials configuration (SSID and password)
-- [ ] Implement NTP client for time synchronization
-- [ ] Add timezone configuration support
+- [x] Implement NTP client for time synchronization
+- [x] Add timezone configuration support
 - [ ] Implement scheduling logic (9am-6pm, every 2 hours)
 - [ ] Implement 25-second mister activation timer
 - [ ] Remove existing I2C and WiFi scanning diagnostic code
@@ -57,8 +84,8 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 - [ ] Store last activation time in non-volatile memory (EEPROM/preferences)
 
 ### Testing
-- [ ] Test WiFi connection and reconnection logic
-- [ ] Test NTP time synchronization accuracy
+- [x] Test WiFi connection and reconnection logic
+- [x] Test NTP time synchronization accuracy
 - [ ] Test relay activation timing (verify 25-second duration)
 - [ ] Test scheduling intervals (verify 2-hour spacing)
 - [ ] Test time window enforcement (9am-6pm only)
