@@ -36,6 +36,7 @@ private:
     MisterState currentState;
     unsigned long lastMistTime;
     unsigned long mistStartTime;
+    bool hasEverMisted;
 
     // Internal logic methods
     bool isInActiveWindow();

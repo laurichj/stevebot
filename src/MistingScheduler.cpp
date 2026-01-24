@@ -3,7 +3,7 @@
 
 MistingScheduler::MistingScheduler(ITimeProvider* timeProvider, IRelayController* relayController)
     : timeProvider(timeProvider), relayController(relayController),
-      currentState(WAITING_SYNC), lastMistTime(0), mistStartTime(0) {
+      currentState(WAITING_SYNC), lastMistTime(0), mistStartTime(0), hasEverMisted(false) {
 }
 
 void MistingScheduler::update() {
@@ -53,7 +53,7 @@ bool MistingScheduler::shouldStartMisting() {
     if (currentState != IDLE) return false;
 
     // First mist
-    if (lastMistTime == 0) return true;
+    if (!hasEverMisted) return true;
 
     // Check if 2 hours have passed
     unsigned long elapsed = timeProvider->getMillis() - lastMistTime;
@@ -65,6 +65,7 @@ void MistingScheduler::startMisting() {
     mistStartTime = timeProvider->getMillis();
     lastMistTime = timeProvider->getMillis();
     currentState = MISTING;
+    hasEverMisted = true;
 }
 
 void MistingScheduler::stopMisting() {
