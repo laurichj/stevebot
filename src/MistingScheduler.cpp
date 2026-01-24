@@ -21,9 +21,11 @@ void MistingScheduler::update() {
             break;
 
         case MISTING:
-            unsigned long elapsed = timeProvider->getMillis() - mistStartTime;
-            if (elapsed >= MIST_DURATION) {
-                stopMisting();
+            {
+                unsigned long elapsed = timeProvider->getMillis() - mistStartTime;
+                if (elapsed >= MIST_DURATION) {
+                    stopMisting();
+                }
             }
             break;
     }
