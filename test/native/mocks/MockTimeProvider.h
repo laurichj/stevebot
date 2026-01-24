@@ -3,7 +3,7 @@
 #define MOCK_TIME_PROVIDER_H
 
 #include "ITimeProvider.h"
-#include <cstring>
+#include <string.h>
 
 class MockTimeProvider : public ITimeProvider {
 public:
