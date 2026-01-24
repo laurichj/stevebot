@@ -5,6 +5,9 @@
 #include "ITimeProvider.h"
 #include "IRelayController.h"
 
+// Logging callback type
+typedef void (*LogCallback)(const char* message);
+
 enum MisterState {
   WAITING_SYNC,   // Time not yet synchronized
   IDLE,           // Waiting for next misting time
@@ -13,7 +16,7 @@ enum MisterState {
 
 class MistingScheduler {
 public:
-    MistingScheduler(ITimeProvider* timeProvider, IRelayController* relayController);
+    MistingScheduler(ITimeProvider* timeProvider, IRelayController* relayController, LogCallback logger = nullptr);
 
     // Call from main loop
     void update();
@@ -32,6 +35,7 @@ public:
 private:
     ITimeProvider* timeProvider;
     IRelayController* relayController;
+    LogCallback logger;
 
     MisterState currentState;
     unsigned long lastMistTime;
@@ -43,6 +47,7 @@ private:
     bool shouldStartMisting();
     void startMisting();
     void stopMisting();
+    void log(const char* message);
 };
 
 #endif

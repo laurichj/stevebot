@@ -11,10 +11,27 @@
 // NTP server configuration
 const char* ntpServer = "pool.ntp.org";
 
+// Logging function with timestamp
+void logWithTimestamp(const char* message) {
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+        Serial.printf("%04d-%02d-%02d %02d:%02d:%02d | %s\n",
+                      timeinfo.tm_year + 1900,
+                      timeinfo.tm_mon + 1,
+                      timeinfo.tm_mday,
+                      timeinfo.tm_hour,
+                      timeinfo.tm_min,
+                      timeinfo.tm_sec,
+                      message);
+    } else {
+        Serial.printf("----/--/-- --:--:-- | %s\n", message);
+    }
+}
+
 // Global instances
 NTPTimeProvider timeProvider;
 GPIORelayController relayController(RELAY_PIN);
-MistingScheduler scheduler(&timeProvider, &relayController);
+MistingScheduler scheduler(&timeProvider, &relayController, logWithTimestamp);
 
 void setup() {
     Serial.begin(115200);

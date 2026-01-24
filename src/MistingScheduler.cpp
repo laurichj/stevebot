@@ -1,8 +1,8 @@
 // src/MistingScheduler.cpp
 #include "MistingScheduler.h"
 
-MistingScheduler::MistingScheduler(ITimeProvider* timeProvider, IRelayController* relayController)
-    : timeProvider(timeProvider), relayController(relayController),
+MistingScheduler::MistingScheduler(ITimeProvider* timeProvider, IRelayController* relayController, LogCallback logger)
+    : timeProvider(timeProvider), relayController(relayController), logger(logger),
       currentState(WAITING_SYNC), lastMistTime(0), mistStartTime(0), hasEverMisted(false) {
 }
 
@@ -66,9 +66,17 @@ void MistingScheduler::startMisting() {
     lastMistTime = timeProvider->getMillis();
     currentState = MISTING;
     hasEverMisted = true;
+    log("MIST START");
 }
 
 void MistingScheduler::stopMisting() {
     relayController->turnOff();
     currentState = IDLE;
+    log("MIST STOP");
+}
+
+void MistingScheduler::log(const char* message) {
+    if (logger) {
+        logger(message);
+    }
 }
