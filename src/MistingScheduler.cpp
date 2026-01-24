@@ -12,7 +12,8 @@ void MistingScheduler::update() {
             // Assume time is available for now (will refine later)
             currentState = IDLE;
             lastMistTime = 0;
-            break;
+            // Fall through to check IDLE conditions immediately
+            [[fallthrough]];
 
         case IDLE:
             if (shouldStartMisting()) {
