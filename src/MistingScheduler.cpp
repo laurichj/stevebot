@@ -9,11 +9,17 @@ MistingScheduler::MistingScheduler(ITimeProvider* timeProvider, IRelayController
 void MistingScheduler::update() {
     switch (currentState) {
         case WAITING_SYNC:
-            // Assume time is available for now (will refine later)
-            currentState = IDLE;
-            lastMistTime = 0;
-            // Fall through to check IDLE conditions immediately
-            [[fallthrough]];
+            {
+                struct tm timeinfo;
+                if (timeProvider->getTime(&timeinfo)) {
+                    currentState = IDLE;
+                    lastMistTime = 0;
+                    // Fall through to check IDLE conditions immediately
+                    [[fallthrough]];
+                } else {
+                    break;
+                }
+            }
 
         case IDLE:
             if (shouldStartMisting()) {

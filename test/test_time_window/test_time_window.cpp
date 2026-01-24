@@ -61,7 +61,7 @@ void test_misting_blocked_when_time_unavailable() {
     scheduler.update();
 
     TEST_ASSERT_FALSE(relay.getIsOn());
-    TEST_ASSERT_EQUAL(IDLE, scheduler.getState());
+    TEST_ASSERT_EQUAL(WAITING_SYNC, scheduler.getState());
 }
 
 void setUp(void) {
