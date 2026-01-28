@@ -23,17 +23,28 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 
 ## Installation
 
-1. Install the Arduino IDE or Arduino CLI
-2. Install required libraries:
-   - Adafruit_TestBed
-   - WiFi (built-in for ESP32)
-3. Configure your WiFi credentials:
-   - Copy `secrets.h.template` to `secrets.h`
-   - Edit `secrets.h` and add your WiFi SSID and password
+1. Install PlatformIO:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip3 install platformio
+   ```
+
+2. Configure your WiFi credentials:
+   - Copy `src/secrets.h.template` to `src/secrets.h`
+   - Edit `src/secrets.h` and add your WiFi SSID and password
+   - Set your timezone offsets (GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC)
    - Note: `secrets.h` is gitignored and will not be committed
-4. Upload the sketch to your ESP32 board
-5. Connect the relay to pin 13
-6. Connect your misting system to the relay
+
+3. Build and upload to your ESP32:
+   ```bash
+   pio run -e esp32 --target upload
+   ```
+
+4. Hardware setup:
+   - Connect the relay module to GPIO pin 13
+   - Connect your misting system to the relay's normally open (NO) terminals
+   - Ensure proper power supply for both ESP32 and misting system
 
 ## Wiring
 
@@ -42,17 +53,37 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 
 ## Running Tests
 
-Comprehensive unit tests for WiFi and NTP functionality are available in the `test/` directory.
+This project uses PlatformIO with a hybrid testing approach:
+- **Native Tests**: Fast unit tests that run on your development machine (no hardware required)
+- **Embedded Tests**: Integration tests that run on the ESP32 hardware
 
-See [test/README.md](test/README.md) for detailed instructions on running the test suite.
+### Quick Start
 
-Quick start:
 ```bash
-# Using Arduino IDE: Open test/test_main.ino and upload
-# Using Arduino CLI:
-arduino-cli compile --fqbn esp32:esp32:adafruit_feather_esp32s2 test/
-arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:adafruit_feather_esp32s2 test/
+# Install PlatformIO (one time setup)
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install platformio
+
+# Run native unit tests (fast, no hardware needed)
+pio test -e native
+
+# Build and upload firmware to ESP32
+pio run -e esp32 --target upload
+
+# Monitor serial output from ESP32
+pio device monitor
 ```
+
+### Test Architecture
+
+The codebase is organized for testability:
+- **Interfaces** (`ITimeProvider`, `IRelayController`): Abstract dependencies for testing
+- **Mocks** (`test/native/mocks/`): Test doubles that simulate hardware behavior
+- **Unit Tests** (`test/test_*/`): Verify individual components in isolation
+- **Integration**: The main application (`src/main.cpp`) wires everything together
+
+See [docs/TESTING.md](docs/TESTING.md) for comprehensive testing documentation.
 
 ## Testing NTP Time Synchronization (Manual)
 
@@ -100,9 +131,11 @@ If time synchronization fails, verify:
 ### Testing
 - [x] Test WiFi connection and reconnection logic
 - [x] Test NTP time synchronization accuracy
-- [ ] Test relay activation timing (verify 25-second duration)
-- [ ] Test scheduling intervals (verify 2-hour spacing)
-- [ ] Test time window enforcement (9am-6pm only)
+- [x] Test relay activation timing (verify 25-second duration)
+- [x] Test scheduling intervals (verify 2-hour spacing)
+- [x] Test time window enforcement (9am-6pm only)
+- [x] Test state machine transitions (WAITING_SYNC → IDLE → MISTING)
+- [x] Create comprehensive unit test suite with mocks
 - [ ] Test behavior across midnight boundary
 - [ ] Test power loss recovery and time resync
 - [ ] Test manual override commands
