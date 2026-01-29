@@ -6,6 +6,7 @@
 #include "NTPTimeProvider.h"
 #include "GPIORelayController.h"
 #include "NVSStateStorage.h"
+#include <esp_task_wdt.h>
 
 #define RELAY_PIN 13
 
@@ -37,6 +38,16 @@ MistingScheduler scheduler(&timeProvider, &relayController, &stateStorage, logWi
 
 void setup() {
     Serial.begin(115200);
+
+    // Initialize watchdog timer (10 second timeout, trigger panic/reset)
+    esp_task_wdt_init(10, true);
+    esp_task_wdt_add(NULL);  // Add current task to watchdog
+
+    // Check if system was reset by watchdog
+    esp_reset_reason_t resetReason = esp_reset_reason();
+    if (resetReason == ESP_RST_TASK_WDT) {
+        logWithTimestamp("WARNING: System restarted due to watchdog timeout");
+    }
 
     // WiFi setup
     WiFi.mode(WIFI_STA);
@@ -90,6 +101,8 @@ void setup() {
 }
 
 void loop() {
+    esp_task_wdt_reset();  // Feed the watchdog to prove system is alive
+
     scheduler.update();
     delay(100);
 }
