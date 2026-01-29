@@ -100,9 +100,37 @@ void setup() {
     }
 }
 
+void processSerialCommands() {
+    // Non-blocking: only process if data is available
+    if (!Serial.available()) {
+        return;
+    }
+
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    cmd.toUpperCase();
+
+    if (cmd == "ENABLE") {
+        scheduler.setEnabled(true);
+        Serial.println("OK: Scheduler enabled");
+    } else if (cmd == "DISABLE") {
+        scheduler.setEnabled(false);
+        Serial.println("OK: Scheduler disabled");
+    } else if (cmd == "FORCE_MIST") {
+        scheduler.forceMist();
+        Serial.println("OK: Force mist command sent");
+    } else if (cmd == "STATUS") {
+        scheduler.printStatus();
+    } else if (cmd.length() > 0) {
+        Serial.print("ERROR: Unknown command: ");
+        Serial.println(cmd);
+    }
+}
+
 void loop() {
     esp_task_wdt_reset();  // Feed the watchdog to prove system is alive
 
+    processSerialCommands();
     scheduler.update();
     delay(100);
 }
