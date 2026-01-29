@@ -154,7 +154,7 @@ The codebase is organized for testability:
 - **Unit Tests** (`test/test_*/`): Verify individual components in isolation
 - **Integration**: The main application (`src/main.cpp`) wires everything together
 
-See [docs/TESTING.md](docs/TESTING.md) for comprehensive testing documentation.
+See [test/README.md](test/README.md) for comprehensive testing documentation.
 
 ## Testing NTP Time Synchronization (Manual)
 
