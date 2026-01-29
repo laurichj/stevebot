@@ -5,6 +5,7 @@
 #include "MistingScheduler.h"
 #include "NTPTimeProvider.h"
 #include "GPIORelayController.h"
+#include "NVSStateStorage.h"
 
 #define RELAY_PIN 13
 
@@ -31,7 +32,8 @@ void logWithTimestamp(const char* message) {
 // Global instances
 NTPTimeProvider timeProvider;
 GPIORelayController relayController(RELAY_PIN);
-MistingScheduler scheduler(&timeProvider, &relayController, logWithTimestamp);
+NVSStateStorage stateStorage(logWithTimestamp);
+MistingScheduler scheduler(&timeProvider, &relayController, &stateStorage, logWithTimestamp);
 
 void setup() {
     Serial.begin(115200);
@@ -76,6 +78,9 @@ void setup() {
             Serial.println("\nTime synchronized!");
             Serial.print("Current time: ");
             Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+
+            // Load state from NVS after time is synchronized
+            scheduler.loadState();
         } else {
             Serial.println("\nFailed to synchronize time!");
         }

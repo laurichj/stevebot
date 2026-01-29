@@ -4,6 +4,7 @@
 
 #include "ITimeProvider.h"
 #include "IRelayController.h"
+#include "IStateStorage.h"
 
 // Logging callback type
 typedef void (*LogCallback)(const char* message);
@@ -16,7 +17,7 @@ enum MisterState {
 
 class MistingScheduler {
 public:
-    MistingScheduler(ITimeProvider* timeProvider, IRelayController* relayController, LogCallback logger = nullptr);
+    MistingScheduler(ITimeProvider* timeProvider, IRelayController* relayController, IStateStorage* stateStorage = nullptr, LogCallback logger = nullptr);
 
     // Call from main loop
     void update();
@@ -25,6 +26,16 @@ public:
     MisterState getState() const { return currentState; }
     unsigned long getLastMistTime() const { return lastMistTime; }
     unsigned long getMistStartTime() const { return mistStartTime; }
+
+    // State management
+    void loadState();
+    void saveState();
+    void setEnabled(bool enabled);
+    bool isEnabled() const { return schedulerEnabled; }
+
+    // Manual control
+    void forceMist();
+    void printStatus();
 
     // Configuration
     static const unsigned long MIST_DURATION = 25000;      // 25 seconds
@@ -35,12 +46,14 @@ public:
 private:
     ITimeProvider* timeProvider;
     IRelayController* relayController;
+    IStateStorage* stateStorage;
     LogCallback logger;
 
     MisterState currentState;
     unsigned long lastMistTime;
     unsigned long mistStartTime;
     bool hasEverMisted;
+    bool schedulerEnabled;
 
     // Internal logic methods
     bool isInActiveWindow();
