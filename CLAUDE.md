@@ -8,54 +8,193 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Arduino sketch for ESP32-based hardware testing and diagnostics, specifically designed for Adafruit development boards. The project name is "stevebot".
+This is a PlatformIO-based ESP32 project for automated iguana habitat environmental control. The project name is "stevebot". It controls a relay-connected misting system to maintain proper humidity levels on a scheduled basis.
 
 ## Hardware Requirements
 
-- ESP32 microcontroller (Adafruit board)
-- Relay connected to pin 13
-- I2C devices (optional, for testing)
-- WiFi capability (built into ESP32)
+- ESP32 microcontroller (Adafruit Feather ESP32-S2 or compatible)
+- Relay module connected to GPIO pin 13
+- Misting system (connected via relay)
+- WiFi network (for NTP time synchronization)
+- Power supply
+
+## Architecture
+
+The project uses a modular, object-oriented architecture with dependency injection for testability:
+
+### Core Components
+
+- **`src/main.cpp`**: Entry point with setup(), loop(), and serial command processing
+- **`src/MistingScheduler`**: State machine managing misting cycles (9am-6pm, 2-hour intervals)
+- **`src/NTPTimeProvider`**: WiFi and NTP time synchronization implementation
+- **`src/GPIORelayController`**: Hardware relay control implementation
+- **`src/NVSStateStorage`**: ESP32 non-volatile storage for state persistence
+
+### Interfaces (for testing)
+
+- **`src/ITimeProvider.h`**: Time abstraction (allows mock time in tests)
+- **`src/IRelayController.h`**: Relay abstraction (allows mock relay in tests)
+- **`src/IStateStorage.h`**: Storage abstraction (allows mock NVS in tests)
+
+### Safety Features
+
+- **Watchdog Timer**: 10-second timeout, automatic system reset on hang
+- **State Persistence**: NVS storage survives power cycles, prevents duplicate misting
+- **Serial Commands**: Manual override via ENABLE, DISABLE, FORCE_MIST, STATUS
+- **Failsafe Relay**: Defaults to OFF on startup/reset
 
 ## Dependencies
 
-- **Adafruit_TestBed library**: Required for I2C bus scanning functionality
-- **WiFi.h**: Built-in ESP32 WiFi library
+All dependencies are managed via PlatformIO:
+
+- **WiFi** (built-in ESP32 library): Network connectivity for NTP
+- **Preferences** (built-in ESP32 library): Non-volatile storage (NVS)
+- **Unity** (testing framework): Native unit tests
+
+No external libraries required.
 
 ## Building and Uploading
 
-This is an Arduino sketch (.ino file) that must be compiled and uploaded using the Arduino IDE or Arduino CLI:
+This project uses **PlatformIO**, not Arduino IDE:
 
-- **Arduino IDE**: Open `stevebot.ino` and use the Upload button
-- **Arduino CLI**:
-  ```bash
-  arduino-cli compile --fqbn esp32:esp32:adafruit_feather_esp32s2 stevebot.ino
-  arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:adafruit_feather_esp32s2 stevebot.ino
-  ```
-  (Adjust port and board FQBN as needed for your specific hardware)
+### Development Setup
+
+```bash
+# Install PlatformIO
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install platformio
+```
+
+### Configure WiFi Credentials
+
+```bash
+# Copy template and edit with your credentials
+cp secrets.h.template secrets.h
+# Edit secrets.h: Add WiFi SSID, password, and timezone offsets
+```
+
+**Note**: `secrets.h` is gitignored and will not be committed.
+
+### Build and Upload
+
+```bash
+# Build firmware for ESP32
+pio run -e esp32
+
+# Upload to connected ESP32
+pio run -e esp32 --target upload
+
+# Monitor serial output (115200 baud)
+pio device monitor
+```
 
 ## Running Tests
 
-Unit tests for WiFi and NTP functionality are located in the `test/` directory:
+The project uses a **hybrid testing approach**:
+
+### Native Unit Tests (Recommended for Development)
+
+Fast tests that run on your development machine without hardware:
 
 ```bash
-# Compile and upload tests
-arduino-cli compile --fqbn esp32:esp32:adafruit_feather_esp32s2 test/
-arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:adafruit_feather_esp32s2 test/
-arduino-cli monitor -p /dev/ttyUSB0 -c baudrate=115200
+# Run all native tests (38 tests, ~5 seconds)
+pio test -e native
+
+# Run specific test suite
+pio test -e native --filter test_state_machine
+
+# Verbose output
+pio test -e native -v
+```
+
+**Test Coverage**: 38 unit tests covering:
+- Time window enforcement (9am-6pm)
+- State machine transitions
+- 2-hour interval timing
+- State persistence and recovery
+- Enable/disable functionality
+- Force mist command
+- Mock infrastructure
+
+### Embedded Tests (Hardware Required)
+
+Integration tests that run on actual ESP32:
+
+```bash
+# Requires secrets.h with WiFi credentials
+pio test -e embedded --target upload
+pio device monitor -b 115200
 ```
 
 See `test/README.md` for detailed test documentation.
 
-## Code Architecture
+## Code Architecture Details
 
-Single-file Arduino sketch with standard structure:
-- `setup()`: Initializes serial communication, relay pin, and WiFi in station mode
-- `loop()`: Periodically performs I2C scanning, WiFi network scanning, and relay control
-- Uses a loop counter to trigger diagnostics on first iteration and control relay timing
+### Main Loop (src/main.cpp)
 
-## Serial Communication
+```cpp
+void setup() {
+    // 1. Initialize watchdog timer
+    // 2. Connect to WiFi
+    // 3. Synchronize time via NTP
+    // 4. Load saved state from NVS
+}
 
-The sketch outputs diagnostic information to serial at 115200 baud. Connect via serial monitor to view:
-- I2C device scan results
-- WiFi network scan results (SSID, RSSI, encryption status)
+void loop() {
+    // 1. Feed watchdog (prove system is alive)
+    // 2. Process serial commands (non-blocking)
+    // 3. Update scheduler state machine
+}
+```
+
+### Scheduler State Machine
+
+- **WAITING_SYNC**: Waiting for NTP time synchronization
+- **IDLE**: Time synced, waiting for next misting window
+- **MISTING**: Actively running mister (25 seconds)
+
+### Serial Commands
+
+Connect serial monitor at 115200 baud and send:
+
+- **`STATUS`**: Display scheduler state, last/next mist times
+- **`ENABLE`**: Enable automatic misting (persists to NVS)
+- **`DISABLE`**: Disable automatic misting (persists to NVS)
+- **`FORCE_MIST`**: Manually trigger immediate mist cycle
+
+Commands are case-insensitive.
+
+## Serial Output
+
+The system outputs timestamped logs at 115200 baud:
+
+```
+2026-01-28 14:30:00 | MIST START
+2026-01-28 14:30:25 | MIST STOP
+2026-01-28 14:30:25 | Scheduler ENABLED
+```
+
+Connect via serial monitor to view:
+- WiFi connection status
+- NTP synchronization status
+- Misting events with timestamps
+- State changes (enable/disable)
+- Watchdog reset warnings (if system recovered from hang)
+- Serial command responses
+
+## Development Workflow
+
+1. **Make code changes** in `src/` or test files
+2. **Run native tests**: `pio test -e native` (fast feedback)
+3. **Build for ESP32**: `pio run -e esp32` (verify compilation)
+4. **Upload to hardware**: `pio run -e esp32 --target upload`
+5. **Test on device**: Use serial commands, verify behavior
+6. **Commit changes**: Follow git commit guidelines above
+
+## Additional Documentation
+
+- **README.md**: User-facing documentation, installation, features
+- **test/README.md**: Comprehensive test suite documentation
+- **docs/hardware-testing-guide.md**: Hardware testing procedures
+- **docs/plans/**: Design documents and implementation plans
