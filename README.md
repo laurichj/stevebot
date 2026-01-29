@@ -19,7 +19,11 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 - **Automated Misting Schedule**: Runs mister for 25 seconds every 2 hours
 - **Daylight Hours Operation**: Active only between 9am and 6pm
 - **NTP Time Synchronization**: Uses WiFi to maintain accurate time
-- **Diagnostic Capabilities**: I2C and WiFi scanning for troubleshooting
+- **Safety Features**:
+  - **Watchdog Timer**: Automatic recovery from system hangs (10-second timeout)
+  - **Non-Volatile Storage**: State persistence across power cycles
+  - **Manual Override**: Serial command interface for emergency control
+  - **Failsafe Relay State**: Relay defaults to OFF on startup/reset
 
 ## Installation
 
@@ -50,6 +54,73 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 
 - **Relay Control**: GPIO Pin 13
 - **Relay to Mister**: Connect misting system to relay's normally open (NO) terminals
+
+## Usage
+
+### Automatic Operation
+
+Once configured and powered on, Stevebot will:
+1. Connect to WiFi and synchronize time via NTP
+2. Load saved state from non-volatile storage (if available)
+3. Automatically mist for 25 seconds every 2 hours during daylight hours (9am-6pm)
+4. Save state after each misting cycle to prevent duplicate misting after power cycles
+
+### Manual Control via Serial Commands
+
+Connect to the serial monitor at 115200 baud and send these commands:
+
+- **`STATUS`** - Display detailed scheduler status
+  - Current state (WAITING_SYNC, IDLE, MISTING)
+  - Enabled/disabled status
+  - Last mist time and next scheduled mist
+  - Example output:
+    ```
+    ===== MISTING SCHEDULER STATUS =====
+    State: IDLE
+    Scheduler enabled: true
+    Last mist time: 2026-01-27 14:30:00
+    Next mist estimate: 2026-01-27 16:30:00
+    ====================================
+    ```
+
+- **`ENABLE`** - Enable automatic misting (saved to non-volatile storage)
+  - Allows scheduler to run misting cycles automatically
+  - State persists across power cycles
+
+- **`DISABLE`** - Disable automatic misting (saved to non-volatile storage)
+  - Prevents future automatic misting cycles
+  - Current mist cycle (if active) completes normally
+  - State persists across power cycles
+
+- **`FORCE_MIST`** - Immediately trigger a mist cycle
+  - Bypasses 2-hour interval check
+  - Only works when scheduler is enabled
+  - Error if already misting or scheduler disabled
+
+Commands are case-insensitive. Unknown commands return an error message.
+
+### Safety Features
+
+#### Watchdog Timer Protection
+- The ESP32 watchdog timer monitors the main loop with a 10-second timeout
+- If the system hangs for any reason, the watchdog automatically resets the system
+- On restart, the system logs the watchdog reset and resumes normal operation
+- Relay defaults to OFF after any reset, preventing stuck-on scenarios
+
+#### State Persistence (Non-Volatile Storage)
+- All critical state is saved to ESP32 NVS (Non-Volatile Storage):
+  - Last mist timestamp
+  - Scheduler enabled/disabled status
+  - Historical misting data
+- State survives power cycles, preventing duplicate misting after unexpected restarts
+- On startup, saved state is automatically restored
+
+#### Recovery After Power Loss
+When power is restored after an outage:
+1. System loads state from NVS
+2. Checks last mist time to prevent immediate re-misting
+3. Resumes normal 2-hour interval schedule
+4. Relay remains OFF until next scheduled time (unless manually triggered)
 
 ## Running Tests
 
@@ -124,9 +195,9 @@ If time synchronization fails, verify:
 
 ### Safety & Reliability
 - [x] Add failsafe relay state on startup (ensure mister is OFF)
-- [ ] Implement watchdog timer to prevent relay from sticking ON
-- [ ] Add manual override capability via serial commands
-- [ ] Store last activation time in non-volatile memory (EEPROM/preferences)
+- [x] Implement watchdog timer to prevent relay from sticking ON
+- [x] Add manual override capability via serial commands
+- [x] Store last activation time in non-volatile memory (NVS)
 
 ### Testing
 - [x] Test WiFi connection and reconnection logic
@@ -136,10 +207,16 @@ If time synchronization fails, verify:
 - [x] Test time window enforcement (9am-6pm only)
 - [x] Test state machine transitions (WAITING_SYNC → IDLE → MISTING)
 - [x] Create comprehensive unit test suite with mocks
+- [x] Test state persistence and recovery (NVS)
+- [x] Test enable/disable functionality
+- [x] Test force mist command
+- [x] Test state recovery after simulated power loss
 - [ ] Test behavior across midnight boundary
-- [ ] Test power loss recovery and time resync
-- [ ] Test manual override commands
+- [ ] Test power loss recovery on hardware
+- [ ] Test watchdog timer reset recovery
 - [ ] Perform 24-hour continuous operation test
+
+For hardware testing procedures, see [docs/hardware-testing-guide.md](docs/hardware-testing-guide.md).
 
 ### Monitoring & Debugging
 - [x] Add serial output for misting events (timestamps)
