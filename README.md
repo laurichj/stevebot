@@ -8,7 +8,7 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 
 ## Hardware Requirements
 
-- ESP32 development board (Adafruit Feather ESP32-S2 or similar)
+- ESP32 development board (Adafruit Feather ESP32 V2)
 - Relay module (connected to pin 13)
 - Misting system (connected via relay)
 - WiFi network (for time synchronization via NTP)

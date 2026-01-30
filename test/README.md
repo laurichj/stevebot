@@ -48,9 +48,6 @@ test/
 **Mock Infrastructure Tests:**
 - `test_mock_storage/` - Validates MockStateStorage test double behavior
 
-**Embedded Integration Tests:**
-- `test_wifi_ntp.cpp` - WiFi and NTP functionality on real hardware
-
 ## Running Tests
 
 ### Native Unit Tests (Recommended for Development)
@@ -58,13 +55,18 @@ test/
 Fast tests that run on your development machine without hardware:
 
 ```bash
-# Run all native tests
-pio test -e native
+# Run all native tests using Makefile
+make test
+
+# Run with verbose output
+make test-verbose
 
 # Run specific test
-pio test -e native --filter test_state_machine
+make test-specific TEST=test_state_machine
 
-# Run tests with verbose output
+# Or use PlatformIO directly
+pio test -e native
+pio test -e native --filter test_state_machine
 pio test -e native -v
 ```
 
@@ -90,23 +92,26 @@ native         test_mock_storage              PASSED    00:00:00.495
 ================= 38 test cases: 38 succeeded in 00:00:04.718 =================
 ```
 
-### Embedded Integration Tests (Hardware Required)
+### Hardware Integration Testing
 
-Tests that run on actual ESP32 hardware:
+For testing WiFi and NTP functionality on actual ESP32 hardware, use the main firmware with the serial monitor:
 
 ```bash
-# Prepare secrets file
-cp secrets.h.template secrets.h
-# Edit secrets.h with your WiFi credentials
+# Build, upload, and monitor the main firmware
+make flash
 
-# Build and upload embedded tests
-pio test -e embedded --target upload
-
-# Monitor test output
-pio device monitor -b 115200
+# Or use PlatformIO directly
+pio run -e esp32 --target upload && pio device monitor -b 115200 --filter send_on_enter
 ```
 
-**Note:** Embedded tests require physical ESP32 hardware and WiFi credentials.
+The main firmware (`src/main.cpp`) includes comprehensive WiFi connection, NTP synchronization, and logging that serves as integration testing on hardware. Monitor the serial output to verify:
+
+- WiFi connection and reconnection
+- NTP time synchronization
+- Misting scheduler state transitions
+- Serial command interface (STATUS, ENABLE, DISABLE, FORCE_MIST)
+
+**Note:** Hardware testing requires physical ESP32 V2 board and WiFi credentials configured in `src/secrets.h`.
 
 ## Mock Infrastructure
 
@@ -197,74 +202,6 @@ All native tests inject these mocks into the `MistingScheduler` to test behavior
 - Multiple saves update values
 - Setter methods update state
 - Save call tracking accurate
-
-### Embedded Integration Tests
-
-#### WiFi Tests
-1. **WiFi mode configuration** - Verifies WiFi is set to station mode
-2. **Initial connection** - Tests connection to configured WiFi network
-3. **IP address assignment** - Verifies valid IP address obtained
-4. **Signal strength** - Checks RSSI is in valid range
-5. **Disconnection** - Tests ability to disconnect
-6. **Reconnection** - Tests ability to reconnect after disconnection
-7. **Timeout handling** - Verifies connection attempts timeout appropriately
-
-### NTP Tests
-1. **NTP configuration** - Verifies NTP client can be configured
-2. **Time synchronization** - Tests successful sync with NTP server
-3. **Time structure validation** - Verifies all time fields are in valid ranges
-4. **Time accuracy** - Confirms time progresses correctly
-5. **Timezone application** - Verifies timezone offset is applied
-
-## Expected Output
-
-```
-========================================
-  STEVEBOT WiFi & NTP TEST SUITE
-========================================
-
-[TEST] WiFi Connection Test
-[PASS] WiFi mode set to STA
-[PASS] WiFi begin initiated
-[PASS] WiFi connected successfully
-[PASS] Valid IP address obtained
-   IP Address: 192.168.1.100
-[PASS] Signal strength in valid range
-   RSSI: -45 dBm
-
-[TEST] WiFi Reconnection Test
-[PASS] WiFi disconnected
-[PASS] WiFi reconnected successfully
-[PASS] Reconnection within timeout period
-
-[TEST] NTP Synchronization Test
-[PASS] NTP configuration initiated
-[PASS] NTP time synchronized
-[PASS] Year is valid (2024 or later)
-[PASS] Month is valid (0-11)
-[PASS] Day is valid (1-31)
-[PASS] Hour is valid (0-23)
-[PASS] Minute is valid (0-59)
-[PASS] Second is valid (0-59)
-   Synchronized time: 2026-1-21 17:30:45
-
-[TEST] NTP Time Accuracy Test
-[PASS] Time progresses correctly (2 sec +/- 1)
-   Time difference: 2 seconds
-
-[TEST] NTP Timezone Configuration Test
-[PASS] Hour is in valid range with timezone applied
-   Configured GMT offset: -8 hours
-   Configured DST offset: 1 hours
-
-========== TEST SUMMARY ==========
-Tests Run: 13
-Tests Passed: 13
-Tests Failed: 0
-==================================
-
-✓ ALL TESTS PASSED!
-```
 
 ## Writing New Tests
 

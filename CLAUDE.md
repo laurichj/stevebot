@@ -12,7 +12,7 @@ This is a PlatformIO-based ESP32 project for automated iguana habitat environmen
 
 ## Hardware Requirements
 
-- ESP32 microcontroller (Adafruit Feather ESP32-S2 or compatible)
+- ESP32 microcontroller (Adafruit Feather ESP32 V2)
 - Relay module connected to GPIO pin 13
 - Misting system (connected via relay)
 - WiFi network (for NTP time synchronization)
