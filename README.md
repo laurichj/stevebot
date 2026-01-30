@@ -27,25 +27,31 @@ Stevebot uses an ESP32 microcontroller to control a relay-connected misting syst
 
 ## Installation
 
-1. Install PlatformIO:
+1. Initial setup:
    ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip3 install platformio
+   make setup
    ```
+   This will create a Python virtual environment, install PlatformIO, and create `src/secrets.h` from the template.
 
 2. Configure your WiFi credentials:
-   - Copy `src/secrets.h.template` to `src/secrets.h`
    - Edit `src/secrets.h` and add your WiFi SSID and password
-   - Set your timezone offsets (GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC)
+   - Set your timezone using TIMEZONE_STRING (e.g., "PST8PDT,M3.2.0,M11.1.0")
    - Note: `secrets.h` is gitignored and will not be committed
 
-3. Build and upload to your ESP32:
+3. Run tests and build:
    ```bash
-   pio run -e esp32 --target upload
+   make test    # Run native unit tests (fast, no hardware needed)
+   make build   # Build ESP32 firmware
    ```
 
-4. Hardware setup:
+4. Upload to your ESP32:
+   ```bash
+   make upload           # Upload firmware
+   make monitor          # Open serial monitor
+   make flash            # Build, upload, and monitor in one step
+   ```
+
+5. Hardware setup:
    - Connect the relay module to GPIO pin 13
    - Connect your misting system to the relay's normally open (NO) terminals
    - Ensure proper power supply for both ESP32 and misting system
@@ -131,19 +137,25 @@ This project uses PlatformIO with a hybrid testing approach:
 ### Quick Start
 
 ```bash
-# Install PlatformIO (one time setup)
-python3 -m venv .venv
-source .venv/bin/activate
-pip3 install platformio
+# One-time setup
+make setup
 
 # Run native unit tests (fast, no hardware needed)
-pio test -e native
+make test
+
+# Run tests with verbose output
+make test-verbose
+
+# Run specific test suite
+make test-specific TEST=test_state_machine
 
 # Build and upload firmware to ESP32
-pio run -e esp32 --target upload
+make flash   # Builds, uploads, and opens serial monitor
 
-# Monitor serial output from ESP32
-pio device monitor
+# Or run steps individually
+make build
+make upload
+make monitor
 ```
 
 ### Test Architecture
@@ -158,7 +170,7 @@ See [test/README.md](test/README.md) for comprehensive testing documentation.
 
 ## Testing NTP Time Synchronization (Manual)
 
-After uploading the main sketch, open the Serial Monitor at 115200 baud. You should see:
+After uploading the firmware with `make flash`, the serial monitor will automatically open. You should see:
 
 1. **WiFi Connection Test**: Verify that the board connects to your WiFi network and receives an IP address
 2. **NTP Synchronization Test**: Confirm that time is synchronized with the NTP server

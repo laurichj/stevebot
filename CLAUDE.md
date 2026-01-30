@@ -55,28 +55,27 @@ No external libraries required.
 
 ## Building and Uploading
 
-This project uses **PlatformIO**, not Arduino IDE:
+This project uses **PlatformIO** (not Arduino IDE) with a **Makefile** for common tasks.
 
-### Development Setup
-
-```bash
-# Install PlatformIO
-python3 -m venv .venv
-source .venv/bin/activate
-pip3 install platformio
-```
-
-### Configure WiFi Credentials
+### Quick Start
 
 ```bash
-# Copy template and edit with your credentials
-cp secrets.h.template secrets.h
-# Edit secrets.h: Add WiFi SSID, password, and timezone offsets
+# One-time setup: Install PlatformIO and configure secrets
+make setup
+
+# Run tests (fast, no hardware required)
+make test
+
+# Build and upload firmware
+make flash   # Builds, uploads, and opens serial monitor
+
+# View all available commands
+make help
 ```
 
-**Note**: `secrets.h` is gitignored and will not be committed.
+### Manual PlatformIO Commands (Alternative)
 
-### Build and Upload
+If you prefer direct `pio` commands:
 
 ```bash
 # Build firmware for ESP32
@@ -86,7 +85,7 @@ pio run -e esp32
 pio run -e esp32 --target upload
 
 # Monitor serial output (115200 baud)
-pio device monitor
+pio device monitor --filter send_on_enter
 ```
 
 ## Running Tests
@@ -99,13 +98,16 @@ Fast tests that run on your development machine without hardware:
 
 ```bash
 # Run all native tests (38 tests, ~5 seconds)
-pio test -e native
+make test
+
+# Run with verbose output
+make test-verbose
 
 # Run specific test suite
-pio test -e native --filter test_state_machine
+make test-specific TEST=test_state_machine
 
-# Verbose output
-pio test -e native -v
+# Verify build and tests pass
+make verify
 ```
 
 **Test Coverage**: 38 unit tests covering:
@@ -124,7 +126,7 @@ Integration tests that run on actual ESP32:
 ```bash
 # Requires secrets.h with WiFi credentials
 pio test -e embedded --target upload
-pio device monitor -b 115200
+pio device monitor -b 115200 --filter send_on_enter
 ```
 
 See `test/README.md` for detailed test documentation.
@@ -186,11 +188,22 @@ Connect via serial monitor to view:
 ## Development Workflow
 
 1. **Make code changes** in `src/` or test files
-2. **Run native tests**: `pio test -e native` (fast feedback)
-3. **Build for ESP32**: `pio run -e esp32` (verify compilation)
-4. **Upload to hardware**: `pio run -e esp32 --target upload`
-5. **Test on device**: Use serial commands, verify behavior
+2. **Run native tests**: `make test` (fast feedback, no hardware)
+3. **Build for ESP32**: `make build` (verify compilation)
+4. **Upload to hardware**: `make flash` (upload + serial monitor)
+5. **Test on device**: Use serial commands (STATUS, ENABLE, etc.)
 6. **Commit changes**: Follow git commit guidelines above
+
+### Common Makefile Commands
+
+- `make help` - Show all available commands
+- `make test` - Run unit tests
+- `make build` - Build firmware
+- `make upload` - Upload to ESP32
+- `make monitor` - Open serial monitor
+- `make flash` - Build, upload, and monitor
+- `make clean` - Clean build artifacts
+- `make verify` - Run tests and build (CI-friendly)
 
 ## Additional Documentation
 
