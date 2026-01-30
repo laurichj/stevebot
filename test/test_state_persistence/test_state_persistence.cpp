@@ -17,18 +17,25 @@ void test_state_saved_after_start_misting() {
 
     // Set up conditions for misting (in active window, first mist)
     timeProvider.setHour(10);  // 10am - in window
-    timeProvider.setMillis(1000);  // Set non-zero time
+    timeProvider.setEpochTime(1706000000);  // Set epoch time
 
     // Reset save call count to ignore any saves during construction
     storage.resetSaveCallCount();
 
-    // Trigger misting
+    // Trigger misting (starts mist, but doesn't save yet - we save only on stop now)
     scheduler.update();
 
-    // Verify state was saved
+    // State should NOT be saved on mist start (we changed this to reduce NVS writes)
+    TEST_ASSERT_EQUAL(0, storage.getSaveCallCount());
+
+    // Complete the mist cycle
+    timeProvider.advanceMillis(25000);
+    scheduler.update();
+
+    // NOW state should be saved (after successful mist completion)
     TEST_ASSERT_EQUAL(1, storage.getSaveCallCount());
     TEST_ASSERT_TRUE(storage.getHasEverMisted());
-    TEST_ASSERT_EQUAL(1000, storage.getLastMistTime());
+    TEST_ASSERT_EQUAL(1706000000, storage.getLastMistTime());
 }
 
 void test_state_saved_after_stop_misting() {

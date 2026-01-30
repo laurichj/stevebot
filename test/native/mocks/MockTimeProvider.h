@@ -7,7 +7,7 @@
 
 class MockTimeProvider : public ITimeProvider {
 public:
-    MockTimeProvider() : timeAvailable(true), currentMillis(0) {
+    MockTimeProvider() : timeAvailable(true), currentMillis(0), currentEpoch(1706000000) {
         memset(&mockTime, 0, sizeof(mockTime));
         // Default to a valid time
         mockTime.tm_year = 126;  // 2026
@@ -28,16 +28,24 @@ public:
         return currentMillis;
     }
 
+    time_t getEpochTime() override {
+        if (!timeAvailable) return 0;
+        return currentEpoch;
+    }
+
     // Test control methods
     void setHour(int hour) { mockTime.tm_hour = hour; }
     void setTimeAvailable(bool available) { timeAvailable = available; }
     void advanceMillis(unsigned long ms) { currentMillis += ms; }
     void setMillis(unsigned long ms) { currentMillis = ms; }
+    void setEpochTime(time_t epoch) { currentEpoch = epoch; }
+    void advanceEpochTime(time_t seconds) { currentEpoch += seconds; }
 
 private:
     struct tm mockTime;
     bool timeAvailable;
     unsigned long currentMillis;
+    time_t currentEpoch;
 };
 
 #endif

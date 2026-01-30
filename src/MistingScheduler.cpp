@@ -4,7 +4,7 @@
 
 MistingScheduler::MistingScheduler(ITimeProvider* timeProvider, IRelayController* relayController, IStateStorage* stateStorage, LogCallback logger)
     : timeProvider(timeProvider), relayController(relayController), stateStorage(stateStorage), logger(logger),
-      currentState(WAITING_SYNC), lastMistTime(0), mistStartTime(0), hasEverMisted(false), schedulerEnabled(true) {
+      currentState(WAITING_SYNC), lastMistEpoch(0), lastKnownEpoch(0), mistStartTime(0), hasEverMisted(false), schedulerEnabled(true) {
 }
 
 void MistingScheduler::update() {
@@ -13,13 +13,30 @@ void MistingScheduler::update() {
         return;
     }
 
+    // Time jump detection (NTP adjustments)
+    time_t currentEpoch = timeProvider->getEpochTime();
+    if (lastKnownEpoch > 0 && currentEpoch > 0) {
+        time_t timeDelta = (currentEpoch > lastKnownEpoch) ?
+                           (currentEpoch - lastKnownEpoch) :
+                           (lastKnownEpoch - currentEpoch);
+
+        // If time jumped more than 5 minutes, log it
+        if (timeDelta > 300) {
+            char buffer[80];
+            snprintf(buffer, sizeof(buffer),
+                     "WARNING: Time jump detected: %ld seconds", (long)timeDelta);
+            log(buffer);
+        }
+    }
+    lastKnownEpoch = currentEpoch;
+
     switch (currentState) {
         case WAITING_SYNC:
             {
                 struct tm timeinfo;
                 if (timeProvider->getTime(&timeinfo)) {
                     currentState = IDLE;
-                    lastMistTime = 0;
+                    // Don't reset lastMistEpoch - it may have been loaded from storage
                     // Fall through to check IDLE conditions immediately
                     [[fallthrough]];
                 } else {
@@ -38,6 +55,12 @@ void MistingScheduler::update() {
                 unsigned long elapsed = timeProvider->getMillis() - mistStartTime;
                 if (elapsed >= MIST_DURATION) {
                     stopMisting();
+                } else if (elapsed >= MIST_DURATION * 3) {
+                    // Safety failsafe: mist duration exceeded 3x normal time (75 seconds)
+                    log("CRITICAL: Mist duration exceeded safety limit, forcing stop");
+                    relayController->turnOff();
+                    currentState = IDLE;
+                    // Don't save state or update lastMistEpoch - this is an error condition
                 }
             }
             break;
@@ -61,25 +84,31 @@ bool MistingScheduler::shouldStartMisting() {
     // First mist
     if (!hasEverMisted) return true;
 
-    // Check if 2 hours have passed
-    unsigned long elapsed = timeProvider->getMillis() - lastMistTime;
-    return (elapsed >= MIST_INTERVAL);
+    // Check if 2 hours have passed using epoch time
+    time_t currentEpoch = timeProvider->getEpochTime();
+    if (currentEpoch == 0 || lastMistEpoch == 0) {
+        return false;  // Time not available
+    }
+
+    time_t elapsed = currentEpoch - lastMistEpoch;
+    return (elapsed >= MIST_INTERVAL_SECONDS);
 }
 
 void MistingScheduler::startMisting() {
     relayController->turnOn();
     mistStartTime = timeProvider->getMillis();
-    lastMistTime = timeProvider->getMillis();
+    lastMistEpoch = timeProvider->getEpochTime();
     currentState = MISTING;
     hasEverMisted = true;
     log("MIST START");
-    saveState();
+    // Don't save here - save only on successful completion (reduces NVS writes)
 }
 
 void MistingScheduler::stopMisting() {
     relayController->turnOff();
     currentState = IDLE;
     log("MIST STOP");
+    // Save state after successful misting cycle (single write per cycle)
     saveState();
 }
 
@@ -94,11 +123,13 @@ void MistingScheduler::loadState() {
         return;
     }
 
-    lastMistTime = stateStorage->getLastMistTime();
+    // Note: NVS still stores as unsigned long for compatibility
+    // We cast it to time_t (which should also be compatible)
+    lastMistEpoch = (time_t)stateStorage->getLastMistTime();
     hasEverMisted = stateStorage->getHasEverMisted();
     schedulerEnabled = stateStorage->getEnabled();
 
-    if (lastMistTime > 0) {
+    if (lastMistEpoch > 0) {
         log("Loaded state from NVS");
     }
 }
@@ -108,18 +139,30 @@ void MistingScheduler::saveState() {
         return;
     }
 
-    stateStorage->save(lastMistTime, hasEverMisted, schedulerEnabled);
+    // Save epoch time as unsigned long for NVS compatibility
+    stateStorage->save((unsigned long)lastMistEpoch, hasEverMisted, schedulerEnabled);
 }
 
 void MistingScheduler::setEnabled(bool enabled) {
     schedulerEnabled = enabled;
-    saveState();
 
-    if (enabled) {
+    // If enabling and stuck in WAITING_SYNC, check if time is now available
+    if (enabled && currentState == WAITING_SYNC) {
+        struct tm timeinfo;
+        if (timeProvider->getTime(&timeinfo)) {
+            currentState = IDLE;
+            lastMistEpoch = 0;
+            log("Scheduler ENABLED (transitioned to IDLE)");
+        } else {
+            log("Scheduler ENABLED (waiting for time sync)");
+        }
+    } else if (enabled) {
         log("Scheduler ENABLED");
     } else {
         log("Scheduler DISABLED");
     }
+
+    saveState();
 }
 
 void MistingScheduler::forceMist() {
@@ -154,23 +197,22 @@ void MistingScheduler::printStatus() {
             break;
     }
 
-    char buffer[200];
+    char buffer[256];
     snprintf(buffer, sizeof(buffer), "STATUS: state=%s enabled=%s hasEverMisted=%s",
              stateStr,
              schedulerEnabled ? "true" : "false",
              hasEverMisted ? "true" : "false");
     log(buffer);
 
-    // Print last mist time
-    if (hasEverMisted && lastMistTime > 0) {
-        struct tm timeinfo;
-        if (timeProvider->getTime(&timeinfo)) {
-            unsigned long elapsed = timeProvider->getMillis() - lastMistTime;
-            unsigned long elapsedSec = elapsed / 1000;
-            unsigned long elapsedMin = elapsedSec / 60;
-            unsigned long elapsedHours = elapsedMin / 60;
+    // Print last mist time using epoch time
+    if (hasEverMisted && lastMistEpoch > 0) {
+        time_t currentEpoch = timeProvider->getEpochTime();
+        if (currentEpoch > 0) {
+            time_t elapsed = currentEpoch - lastMistEpoch;
+            long elapsedMin = elapsed / 60;
+            long elapsedHours = elapsedMin / 60;
 
-            snprintf(buffer, sizeof(buffer), "STATUS: lastMist=%luh %lum ago",
+            snprintf(buffer, sizeof(buffer), "STATUS: lastMist=%ldh %ldm ago",
                      elapsedHours, elapsedMin % 60);
             log(buffer);
         }
@@ -180,18 +222,20 @@ void MistingScheduler::printStatus() {
 
     // Print next mist estimate if in IDLE state
     if (currentState == IDLE && schedulerEnabled && hasEverMisted) {
-        unsigned long elapsed = timeProvider->getMillis() - lastMistTime;
-        if (elapsed < MIST_INTERVAL) {
-            unsigned long remaining = MIST_INTERVAL - elapsed;
-            unsigned long remainingSec = remaining / 1000;
-            unsigned long remainingMin = remainingSec / 60;
-            unsigned long remainingHours = remainingMin / 60;
+        time_t currentEpoch = timeProvider->getEpochTime();
+        if (currentEpoch > 0 && lastMistEpoch > 0) {
+            time_t elapsed = currentEpoch - lastMistEpoch;
+            if (elapsed < MIST_INTERVAL_SECONDS) {
+                time_t remaining = MIST_INTERVAL_SECONDS - elapsed;
+                long remainingMin = remaining / 60;
+                long remainingHours = remainingMin / 60;
 
-            snprintf(buffer, sizeof(buffer), "STATUS: nextMist=in %luh %lum",
-                     remainingHours, remainingMin % 60);
-            log(buffer);
-        } else {
-            log("STATUS: nextMist=waiting for active window");
+                snprintf(buffer, sizeof(buffer), "STATUS: nextMist=in %ldh %ldm",
+                         remainingHours, remainingMin % 60);
+                log(buffer);
+            } else {
+                log("STATUS: nextMist=waiting for active window");
+            }
         }
     }
 }

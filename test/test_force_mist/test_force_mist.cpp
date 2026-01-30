@@ -104,22 +104,23 @@ void test_forceMist_blocked_when_scheduler_disabled() {
     TEST_ASSERT_EQUAL_STRING("ERROR: Scheduler disabled, cannot force mist", LogCapture::getLastMessage());
 }
 
-void test_forceMist_updates_lastMistTime() {
+void test_forceMist_updates_lastMistEpoch() {
     MockTimeProvider timeProvider;
     MockRelayController relay;
     MockStateStorage storage;
 
     MistingScheduler scheduler(&timeProvider, &relay, &storage);
 
-    // Set initial time
+    // Set initial time (both millis and epoch)
     timeProvider.setMillis(1000000);
+    timeProvider.setEpochTime(1706000000);  // Some epoch time
     timeProvider.setHour(10);
 
     // Force mist
     scheduler.forceMist();
 
-    // Check lastMistTime was updated
-    TEST_ASSERT_EQUAL(1000000, scheduler.getLastMistTime());
+    // Check lastMistEpoch was updated
+    TEST_ASSERT_EQUAL(1706000000, scheduler.getLastMistEpoch());
 
     // Advance time
     timeProvider.advanceMillis(5000);
@@ -128,11 +129,11 @@ void test_forceMist_updates_lastMistTime() {
     timeProvider.advanceMillis(25000);
     scheduler.update();
 
-    // lastMistTime should still be from the force mist start
-    TEST_ASSERT_EQUAL(1000000, scheduler.getLastMistTime());
+    // lastMistEpoch should still be from the force mist start
+    TEST_ASSERT_EQUAL(1706000000, scheduler.getLastMistEpoch());
 
-    // Verify it was saved to storage
-    TEST_ASSERT_EQUAL(1000000, storage.getLastMistTime());
+    // Verify it was saved to storage (saved as unsigned long)
+    TEST_ASSERT_EQUAL(1706000000, storage.getLastMistTime());
     TEST_ASSERT_TRUE(storage.getHasEverMisted());
 }
 
@@ -147,6 +148,6 @@ int main(int argc, char **argv) {
     RUN_TEST(test_forceMist_triggers_immediate_misting_when_enabled);
     RUN_TEST(test_forceMist_blocked_when_already_misting);
     RUN_TEST(test_forceMist_blocked_when_scheduler_disabled);
-    RUN_TEST(test_forceMist_updates_lastMistTime);
+    RUN_TEST(test_forceMist_updates_lastMistEpoch);
     return UNITY_END();
 }

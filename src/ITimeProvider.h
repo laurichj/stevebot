@@ -11,8 +11,11 @@ public:
     // Returns true if time is available and sets timeinfo
     virtual bool getTime(struct tm* timeinfo) = 0;
 
-    // Returns current millis() value for duration tracking
+    // Returns current millis() value for short duration tracking (e.g., mist duration)
     virtual unsigned long getMillis() = 0;
+
+    // Returns current Unix epoch time in seconds (0 if not available)
+    virtual time_t getEpochTime() = 0;
 };
 
 #endif

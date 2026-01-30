@@ -23,8 +23,8 @@ void test_load_state_restores_last_mist_time() {
     // Load state from storage
     scheduler.loadState();
 
-    // Verify lastMistTime was restored
-    TEST_ASSERT_EQUAL(123456, scheduler.getLastMistTime());
+    // Verify lastMistEpoch was restored
+    TEST_ASSERT_EQUAL(123456, scheduler.getLastMistEpoch());
 }
 
 void test_load_state_restores_has_ever_misted() {
@@ -33,9 +33,13 @@ void test_load_state_restores_has_ever_misted() {
     MockStateStorage storage;
 
     // Pre-populate storage with hasEverMisted = true
-    storage.setLastMistTime(100000);
+    time_t lastMist = 1706000000;
+    storage.setLastMistTime(lastMist);
     storage.setHasEverMisted(true);
     storage.setEnabled(true);
+
+    // Set current epoch close to last mist (only 1 hour later, not enough for 2-hour interval)
+    timeProvider.setEpochTime(lastMist + 3600);  // 1 hour later
 
     MistingScheduler scheduler(&timeProvider, &relay, &storage);
     scheduler.loadState();
@@ -45,7 +49,7 @@ void test_load_state_restores_has_ever_misted() {
     timeProvider.setHour(10);
     scheduler.update();
 
-    // Should remain IDLE because we haven't waited MIST_INTERVAL yet
+    // Should remain IDLE because we haven't waited MIST_INTERVAL yet (only 1 hour, need 2)
     TEST_ASSERT_EQUAL(IDLE, scheduler.getState());
 }
 
@@ -125,15 +129,16 @@ void test_load_state_prevents_immediate_remist_after_recovery() {
     MockStateStorage storage;
 
     // Simulate recovery after a recent mist (1 hour ago)
-    // Using millis = 3600000 (1 hour in ms)
-    unsigned long oneHourAgo = 3600000;
+    // Store epoch time from 1 hour ago
+    time_t oneHourAgo = 1706000000;
 
     storage.setLastMistTime(oneHourAgo);
     storage.setHasEverMisted(true);
     storage.setEnabled(true);
 
-    // Set current time to 1 hour after last mist
-    timeProvider.setMillis(oneHourAgo);
+    // Set current epoch time to 1 hour after last mist
+    timeProvider.setEpochTime(oneHourAgo + 3600);  // +1 hour in seconds
+    timeProvider.setMillis(3600000);  // 1 hour in millis
 
     MistingScheduler scheduler(&timeProvider, &relay, &storage);
     scheduler.loadState();
@@ -144,13 +149,17 @@ void test_load_state_prevents_immediate_remist_after_recovery() {
 
     // Should NOT mist because only 1 hour has passed (need 2 hours)
     TEST_ASSERT_EQUAL(IDLE, scheduler.getState());
+    TEST_ASSERT_EQUAL(0, relay.getTurnOnCount());  // No mist yet
 
-    // Advance another hour (total 2 hours)
-    timeProvider.advanceMillis(3600000);
+    // Advance another hour (total 2 hours from last mist epoch)
+    // Use setEpochTime to set absolute time (oneHourAgo + 2 hours)
+    timeProvider.setEpochTime(oneHourAgo + 7200);  // Total: +2 hours in seconds
+    timeProvider.setMillis(7200000);  // Total: 2 hours in millis
     scheduler.update();
 
     // Now should start misting
     TEST_ASSERT_EQUAL(MISTING, scheduler.getState());
+    TEST_ASSERT_EQUAL(1, relay.getTurnOnCount());  // First mist since recovery
 }
 
 void setUp(void) {}

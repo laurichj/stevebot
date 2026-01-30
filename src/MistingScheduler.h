@@ -24,7 +24,7 @@ public:
 
     // Query current state
     MisterState getState() const { return currentState; }
-    unsigned long getLastMistTime() const { return lastMistTime; }
+    time_t getLastMistEpoch() const { return lastMistEpoch; }
     unsigned long getMistStartTime() const { return mistStartTime; }
 
     // State management
@@ -38,10 +38,10 @@ public:
     void printStatus();
 
     // Configuration
-    static const unsigned long MIST_DURATION = 25000;      // 25 seconds
-    static const unsigned long MIST_INTERVAL = 7200000;    // 2 hours
-    static const int ACTIVE_WINDOW_START = 9;              // 9am
-    static const int ACTIVE_WINDOW_END = 18;               // 6pm (exclusive)
+    static const unsigned long MIST_DURATION = 25000;         // 25 seconds
+    static const unsigned long MIST_INTERVAL_SECONDS = 7200;  // 2 hours in seconds
+    static const int ACTIVE_WINDOW_START = 9;                 // 9am
+    static const int ACTIVE_WINDOW_END = 18;                  // 6pm (exclusive)
 
 private:
     ITimeProvider* timeProvider;
@@ -50,8 +50,9 @@ private:
     LogCallback logger;
 
     MisterState currentState;
-    unsigned long lastMistTime;
-    unsigned long mistStartTime;
+    time_t lastMistEpoch;         // Epoch time of last mist start (seconds)
+    time_t lastKnownEpoch;        // Track last known epoch for time jump detection
+    unsigned long mistStartTime;  // millis() when mist started (for duration)
     bool hasEverMisted;
     bool schedulerEnabled;
 

@@ -22,6 +22,7 @@ void test_second_mist_waits_2_hours() {
     MistingScheduler scheduler(&timeProvider, &relay);
 
     timeProvider.setHour(10);
+    timeProvider.setEpochTime(1706000000);
     scheduler.update();  // First mist starts
 
     // Complete first mist
@@ -30,8 +31,9 @@ void test_second_mist_waits_2_hours() {
 
     TEST_ASSERT_EQUAL(IDLE, scheduler.getState());
 
-    // Try to mist before 2 hours
-    timeProvider.advanceMillis(3600000);  // 1 hour
+    // Try to mist before 2 hours (advance epoch time by 1 hour)
+    timeProvider.advanceEpochTime(3600);  // 1 hour in seconds
+    timeProvider.advanceMillis(3600000);  // 1 hour in millis
     scheduler.update();
 
     TEST_ASSERT_EQUAL(IDLE, scheduler.getState());
@@ -44,6 +46,7 @@ void test_mist_triggers_at_2_hour_mark() {
     MistingScheduler scheduler(&timeProvider, &relay);
 
     timeProvider.setHour(10);
+    timeProvider.setEpochTime(1706000000);
     scheduler.update();  // First mist
 
     // Complete first mist
@@ -51,7 +54,8 @@ void test_mist_triggers_at_2_hour_mark() {
     scheduler.update();
 
     // Advance exactly 2 hours from first mist start
-    timeProvider.setMillis(7200000);  // 2 hours total
+    timeProvider.setMillis(7200000);  // 2 hours in millis
+    timeProvider.setEpochTime(1706000000 + 7200);  // 2 hours in epoch seconds
     scheduler.update();
 
     TEST_ASSERT_EQUAL(MISTING, scheduler.getState());
@@ -64,6 +68,7 @@ void test_multiple_cycles_maintain_spacing() {
     MistingScheduler scheduler(&timeProvider, &relay);
 
     timeProvider.setHour(10);
+    timeProvider.setEpochTime(1706000000);
 
     // First cycle
     scheduler.update();
@@ -73,6 +78,7 @@ void test_multiple_cycles_maintain_spacing() {
 
     // Second cycle (2 hours later)
     timeProvider.setMillis(7200000);
+    timeProvider.setEpochTime(1706000000 + 7200);
     timeProvider.setHour(12);
     scheduler.update();
     timeProvider.advanceMillis(25000);
@@ -81,6 +87,7 @@ void test_multiple_cycles_maintain_spacing() {
 
     // Third cycle (4 hours from start)
     timeProvider.setMillis(14400000);
+    timeProvider.setEpochTime(1706000000 + 14400);
     timeProvider.setHour(14);
     scheduler.update();
     timeProvider.advanceMillis(25000);
@@ -94,13 +101,15 @@ void test_mist_blocked_before_interval_even_in_window() {
     MistingScheduler scheduler(&timeProvider, &relay);
 
     timeProvider.setHour(10);
+    timeProvider.setEpochTime(1706000000);
     scheduler.update();  // First mist
 
     timeProvider.advanceMillis(25000);
     scheduler.update();  // Complete first mist
 
     // Still in window but only 30 minutes later
-    timeProvider.setMillis(25000 + 1800000);  // +30 min
+    timeProvider.setMillis(25000 + 1800000);  // +30 min in millis
+    timeProvider.setEpochTime(1706000000 + 1800);  // +30 min in epoch seconds
     timeProvider.setHour(10);
     scheduler.update();
 

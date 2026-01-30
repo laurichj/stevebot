@@ -14,6 +14,12 @@ public:
     unsigned long getMillis() override {
         return millis();
     }
+
+    time_t getEpochTime() override {
+        time_t now;
+        time(&now);
+        return now;
+    }
 };
 
 #endif
