@@ -142,15 +142,15 @@ monitor:
 	@echo "Press Ctrl+C to exit"
 	@if [ -d ".venv" ]; then \
 		if [ ! -z "$(PORT)" ]; then \
-			bash -c "source .venv/bin/activate && pio device monitor -b 115200 -p $(PORT)"; \
+			bash -c "source .venv/bin/activate && pio device monitor -b 115200 --filter send_on_enter -p $(PORT)"; \
 		else \
-			bash -c "source .venv/bin/activate && pio device monitor -b 115200"; \
+			bash -c "source .venv/bin/activate && pio device monitor -b 115200 --filter send_on_enter"; \
 		fi; \
 	else \
 		if [ ! -z "$(PORT)" ]; then \
-			pio device monitor -b 115200 -p $(PORT); \
+			pio device monitor -b 115200 --filter send_on_enter -p $(PORT); \
 		else \
-			pio device monitor -b 115200; \
+			pio device monitor -b 115200 --filter send_on_enter; \
 		fi; \
 	fi
 
